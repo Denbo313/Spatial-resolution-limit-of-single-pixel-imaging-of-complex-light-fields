@@ -12,10 +12,9 @@ import numpy as np
 import pandas as pd
 from scipy.linalg import hadamard
 import matplotlib.pyplot as plt
-from scipy.stats import pearsonr
+import pandas as pd
 
-
-def NCC(A,B):
+def NCC_real(A,B):
     """
     calculates the normalized cross correlation of the real valued images A and B according to:
     A. Kaso, “Computation of the normalized cross-correlation by fast fourier transform,” PLOS ONE 13, e0203434 (2018).365
@@ -119,11 +118,13 @@ for file in filelist:
     
     rec_amp = np.abs(phasor)#.reshape((n,n))
     rec_amp = vec_2_mask(rec_amp, (nn,nn), (sx,sx)) # reshape the reconstructed array to the original (32x32) grid
-
-    rec_phase = np.angle(phasor)#.reshape((n,n))
+    rec_amp = rec_amp/rec_amp.max()
+    
+    rec_phase = np.angle(phasor)
     rec_phase =  vec_2_mask(rec_phase, (nn,nn), (sx,sx)) # reshape the reconstructed array to the original (32x32) grid
-    if 'sim' in file: # normalize to 2pi to yield input field
-        rec_phase = (rec_phase + 0)%(2*np.pi)
+    # normalize to 2pi to yield input field
+    rec_phase = (rec_phase)%(2*np.pi)
+
         
     ##visualization of reconstructed data
     if plot_data:
@@ -156,98 +157,54 @@ amp_gauss = np.loadtxt(input_direc_fields + r'\gauss_amplitude.csv').reshape((n,
 amp_dog = np.loadtxt(input_direc_fields + r'\dog_amplitude.csv').reshape((n,n))
 phase_boat = np.loadtxt(input_direc_fields + r'\boat_phase.csv').reshape((n,n))
 
-# field_dog_0 = amp_dog * np.exp(1j * ((phase_boat + np.pi)%(2*np.pi)))
-field_dog_0 = amp_dog * np.exp(1j * phase_boat)
-field_gauss_0 = amp_gauss * np.exp(1j * phase_boat)
-
 l = len(filelist)
 
 # quick and dirty solution to make the evaluation of the different fields and their components (amplitude and phase) more clear
 # this code could be done in a single array, but this will make the assignement of single values more complex for the reader
-ncc_dog_A_exp = np.zeros(l)
-ncc_dog_A_sim = np.zeros(l)
-ncc_dog_P_exp = np.zeros(l)
-ncc_dog_P_sim = np.zeros(l)
-ncc_gauss_A_exp = np.zeros(l)
-ncc_gauss_A_sim = np.zeros(l)
-ncc_gauss_P_exp = np.zeros(l)
-ncc_gauss_P_sim = np.zeros(l)
 ncc_dog_exp_crosstalk = np.zeros(l)
 ncc_dog_sim_crosstalk = np.zeros(l)
 ncc_gauss_exp_crosstalk = np.zeros(l)
 ncc_gauss_sim_crosstalk = np.zeros(l)
 
-
-
-    
 for field, amp, phase, name, i in zip(rec_fields, rec_amps, rec_phases,filelist, range(l)):
     if 'Dog' in name:
         # decision making to extract the correct values
         if 'exp' in name:
-            
-            A = amp_dog
-            B = amp/amp.max()
-            ncc_dog_A_exp[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase_boat
-            B = phase
-            ncc_dog_P_exp[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase
+            # normalize values to make them comparable
+            A = rec_amps[2]
             B = amp
-            ncc_dog_exp_crosstalk[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            
-
-            
+            ncc_dog_exp_crosstalk[i] = NCC_real(A,B)
+                      
         elif 'sim' in name and 'hadamard' in name:
-            A = amp_dog
+            A = rec_amps[14]
             B = amp
-            ncc_dog_A_sim[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase_boat
-            B = phase
-            ncc_dog_P_sim[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase_boat 
-            B = amp
-            ncc_dog_sim_crosstalk[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            
-
-            
+            ncc_dog_sim_crosstalk[i] = NCC_real(A,B)
+       
     if 'Gauss' in name:
         if 'exp' in name:
-            A = amp_gauss
+            A = rec_amps[5]
             B = amp
-            ncc_gauss_A_exp[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase_boat
-            B = phase
-            ncc_gauss_P_exp[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase
-            B = amp
-            ncc_gauss_exp_crosstalk[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            
-
-            
+            ncc_gauss_exp_crosstalk[i] = NCC_real(A,B)
+                       
         elif 'sim' in name and 'hadamard' in name:
-            A = amp_gauss
-            B = amp/amp.max()
-            ncc_gauss_A_sim[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase_boat
-            B = phase
-            ncc_gauss_P_sim[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
-            A = phase
+            A = rec_amps[17]
             B = amp
-            ncc_gauss_sim_crosstalk[i] = pearsonr(abs(A).flatten(), abs(B).flatten())[0]
+            ncc_gauss_sim_crosstalk[i] = NCC_real(A,B)
+            
             
 
 # delete the zero entries from the arrays
-ncc_dog_A_exp = reduce_vec(ncc_dog_A_exp)
-ncc_dog_A_sim = reduce_vec(ncc_dog_A_sim)
-ncc_dog_P_exp = reduce_vec(ncc_dog_P_exp)
-ncc_dog_P_sim = reduce_vec(ncc_dog_P_sim)
-ncc_gauss_A_exp = reduce_vec(ncc_gauss_A_exp)
-ncc_gauss_A_sim = reduce_vec(ncc_gauss_A_sim)
-ncc_gauss_P_exp = reduce_vec(ncc_gauss_P_exp)
-ncc_gauss_P_sim = reduce_vec(ncc_gauss_P_sim)
 ncc_dog_exp_crosstalk = reduce_vec(ncc_dog_exp_crosstalk)
 ncc_dog_sim_crosstalk = reduce_vec(ncc_dog_sim_crosstalk)
 ncc_gauss_exp_crosstalk = reduce_vec(ncc_gauss_exp_crosstalk)
 ncc_gauss_sim_crosstalk = reduce_vec(ncc_gauss_sim_crosstalk)
 
 
+df=pd.DataFrame({"Gauss simulation": ncc_gauss_sim_crosstalk,
+                 "Gauss experiment": ncc_gauss_exp_crosstalk,
+                 "Dog simulation": ncc_dog_sim_crosstalk,
+                 "Dog experiment": ncc_dog_exp_crosstalk})
+
+df.index = ['8 x 8', '16 x 16', '32 x 32']
+
+df.to_csv('NCC_results.csv')
