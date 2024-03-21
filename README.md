@@ -12,12 +12,4 @@ The NCC values are calculated and stored in properly named variables. Finally, t
 The entries are ordered according to N = 64, 256, 1024.
 
 
-##############################################
-!!!IMPORTANT!!! Right now the folder 'field_reconstruction' is EMPTY! 
-In order to create the data, change LINE 88 in 'evaluate_csv_data.py' to:
-88 export_data = True
-
-After runing the code, .png and .eps files will be created in the folder 'field_reconstruction'
-############################################## 
-
 For any questions, please contact: dennis.scheidt@correo.nucleares.unam.mx
